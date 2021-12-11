@@ -5,4 +5,3 @@ mkdir -p /var/log;
 chmod -R 777 /var/log;
 mongod --fork --logpath=/var/log/mongodb.log;
 python3 data_acquire.py & python3 app.py;
-#python3 -c 'import pymongo;list(pymongo.MongoClient().get_database("energy").energy.find())';
