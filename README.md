@@ -19,8 +19,10 @@
 
 - This web application has following functions: 
 	- demonstrate the time-series waveform of "voltage value", "load", "import" and "generation".
-	- demonstrate the  interactive plot for users to compare the different values in different periods.
+	- demonstrate the  interactive plot for users to compare the utility in tri-cities and the recent project: Ashe main bus voltage.
 	- predict the future values according to past values of "voltage value", "load" and "import".
 	- detect anomaly voltage values in a time period.
 	
 - Team Member: Yijing Gao and Qingyan Guo
+
+Reference: [https://github.com/BrownDSI/data1050-demo-project-f20.git](https://github.com/BrownDSI/data1050-demo-project-f20.git)
