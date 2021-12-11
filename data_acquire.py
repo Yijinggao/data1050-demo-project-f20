@@ -1,27 +1,26 @@
-"""
-Bonneville Power Administration, United States Department of Energy
-"""
 import time
 import sched
-import pandas
+import pandas as pd
 import logging
 import requests
 from io import StringIO
 
 import utils
-from database import upsert_bpa
+from database import upsert_voltage
 
 
-BPA_SOURCE = "https://transmission.bpa.gov/business/operations/Wind/baltwg.txt"
+vol_url1 = "https://transmission.bpa.gov/Business/Operations/Charts/ashe.txt"
+vol_url2 = "https://transmission.bpa.gov/Business/Operations/Charts/triCities.txt"
 MAX_DOWNLOAD_ATTEMPT = 5
 DOWNLOAD_PERIOD = 10         # second
 logger = logging.Logger(__name__)
 utils.setup_logger(logger, 'data.log')
 
 
-def download_bpa(url=BPA_SOURCE, retries=MAX_DOWNLOAD_ATTEMPT):
-    """Returns BPA text from `BPA_SOURCE` that includes power loads and resources
-    Returns None if network failed
+def download_voltage(url, retries=MAX_DOWNLOAD_ATTEMPT):
+    """
+    download the data from the txt file
+    return None if network failed
     """
     text = None
     for i in range(retries):
@@ -32,26 +31,33 @@ def download_bpa(url=BPA_SOURCE, retries=MAX_DOWNLOAD_ATTEMPT):
         except requests.exceptions.HTTPError as e:
             logger.warning("Retry on HTTP Error: {}".format(e))
     if text is None:
-        logger.error('download_bpa too many FAILED attempts')
+        logger.error('download_voltage too many FAILED attempts')
     return text
 
 
-def filter_bpa(text):
-    """Converts `text` to `DataFrame`, removes empty lines and descriptions
-    """
+def filter_voltage(text):
+    # convert each txt to dataframe, removes empty lines and descriptions
     # use StringIO to convert string to a readable buffer
-    df = pandas.read_csv(StringIO(text), skiprows=11, delimiter='\t')
+    df = pd.read_csv(StringIO(text), skiprows=6, delimiter='\t')
     df.columns = df.columns.str.strip()             # remove space in columns name
-    df['Datetime'] = pandas.to_datetime(df['Date/Time'])
+    df['Datetime'] = pd.to_datetime(df['Date/Time'])
     df.drop(columns=['Date/Time'], axis=1, inplace=True)
     df.dropna(inplace=True)             # drop rows with empty cells
     return df
 
 
 def update_once():
-    t = download_bpa()
-    df = filter_bpa(t)
-    upsert_bpa(df)
+    # join two datasets, and update the final df
+    t1 = download_voltage(url=vol_url1)
+    t2 = download_voltage(url=vol_url2)
+    df1 = filter_voltage(t1)
+    df2 = filter_voltage(t2)
+    df1.columns = ['vol_value', 'Datetime']
+    df2.drop(['Datetime'], axis=1, inplace=True)
+    df = pd.concat([df1, df2], axis=1)
+    # change the order for the columns
+    df = df[['Datetime', 'vol_value', 'Import', 'Load', 'Generation']]
+    upsert_voltage(df)
 
 
 def main_loop(timeout=DOWNLOAD_PERIOD):
@@ -70,5 +76,3 @@ def main_loop(timeout=DOWNLOAD_PERIOD):
 
 if __name__ == '__main__':
     main_loop()
-
-

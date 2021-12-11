@@ -11,12 +11,10 @@ utils.setup_logger(logger, 'db.log')
 RESULT_CACHE_EXPIRATION = 10             # seconds
 
 
-def upsert_bpa(df):
-    """
-    Update MongoDB database `energy` and collection `energy` with the given `DataFrame`.
-    """
-    db = client.get_database("energy")
-    collection = db.get_collection("energy")
+# Update MongoDB database "voltage" with the dataframe we get.
+def upsert_voltage(df):
+    db = client.get_database("voltage")
+    collection = db.get_collection("voltage")
     update_count = 0
     for record in df.to_dict('records'):
         result = collection.replace_one(
@@ -29,26 +27,22 @@ def upsert_bpa(df):
                 "insert={}".format(df.shape[0]-update_count))
 
 
-def fetch_all_bpa():
-    db = client.get_database("energy")
-    collection = db.get_collection("energy")
+def fetch_all_voltage():
+    db = client.get_database("voltage")
+    collection = db.get_collection("voltage")
     ret = list(collection.find())
     logger.info(str(len(ret)) + ' documents read from the db')
     return ret
 
 
-_fetch_all_bpa_as_df_cache = expiringdict.ExpiringDict(max_len=1,
+_fetch_all_voltage_as_df_cache = expiringdict.ExpiringDict(max_len=1,
                                                        max_age_seconds=RESULT_CACHE_EXPIRATION)
 
-
-def fetch_all_bpa_as_df(allow_cached=False):
-    """Converts list of dicts returned by `fetch_all_bpa` to DataFrame with ID removed
-    Actual job is done in `_worker`. When `allow_cached`, attempt to retrieve timed cached from
-    `_fetch_all_bpa_as_df_cache`; ignore cache and call `_work` if cache expires or `allow_cached`
-    is False.
-    """
+# convert the output from 'fetch_all_voltage' to dataframe, and drop the string column id
+# retrieve the cashe if allowed.
+def fetch_all_voltage_as_df(allow_cached=False):
     def _work():
-        data = fetch_all_bpa()
+        data = fetch_all_voltage()
         if len(data) == 0:
             return None
         df = pds.DataFrame.from_records(data)
@@ -57,13 +51,13 @@ def fetch_all_bpa_as_df(allow_cached=False):
 
     if allow_cached:
         try:
-            return _fetch_all_bpa_as_df_cache['cache']
+            return _fetch_all_voltage_as_df_cache['cache']
         except KeyError:
             pass
     ret = _work()
-    _fetch_all_bpa_as_df_cache['cache'] = ret
+    _fetch_all_voltage_as_df_cache['cache'] = ret
     return ret
 
 
 if __name__ == '__main__':
-    print(fetch_all_bpa_as_df())
+    print(fetch_all_voltage_as_df())
