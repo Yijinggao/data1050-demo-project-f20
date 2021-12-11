@@ -7,4 +7,3 @@ pymongo
 requests
 ipywidgets
 notebook
-expiringdict
