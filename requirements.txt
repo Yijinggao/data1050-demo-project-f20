@@ -8,4 +8,4 @@ requests
 ipywidgets
 notebook
 expiringdict
-tensorflow
+statsmodels
