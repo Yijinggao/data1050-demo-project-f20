@@ -1,6 +1,7 @@
 import dash
 from dash import dcc
 from dash import html
+from dash.exceptions import PreventUpdate
 import numpy as np
 import plotly.graph_objects as go
 import tensorflow as tf
@@ -377,6 +378,8 @@ def pred(past, future):
     [dash.dependencies.Input('period-dropdown', 'value')])
 
 def detect_abn(period):
+    if len(period) < 2:
+        raise PreventUpdate
     df = fetch_all_voltage_as_df(allow_cached=True)
     first_day = int(period[0])
     last_day = int(period[1])
